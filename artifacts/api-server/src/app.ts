@@ -1,6 +1,10 @@
 import express, { type Express } from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
+import { clerkMiddleware } from "@clerk/express";
+import { CLERK_PROXY_PATH, clerkProxyMiddleware } from "./middlewares/clerkProxyMiddleware";
+import { authMiddleware } from "./middlewares/authMiddleware";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
@@ -25,9 +29,19 @@ app.use(
     },
   }),
 );
-app.use(cors());
-app.use(express.json());
+
+app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
+
+app.use(cors({
+  origin: true,
+  credentials: true,
+}));
+app.use(cookieParser());
+app.use(express.json({ limit: "5mb" } as any));
 app.use(express.urlencoded({ extended: true }));
+
+app.use(clerkMiddleware());
+app.use(authMiddleware as any);
 
 app.use("/api", router);
 
