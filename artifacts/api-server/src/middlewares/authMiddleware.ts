@@ -12,8 +12,7 @@ async function getOrCreateUser(clerkUserId: string): Promise<typeof usersTable.$
 
   if (existing) return existing;
 
-  const client = await clerkClient();
-  const clerkUser = await client.users.getUser(clerkUserId);
+  const clerkUser = await clerkClient.users.getUser(clerkUserId);
   const email = clerkUser.emailAddresses?.[0]?.emailAddress ?? null;
   const firstName = clerkUser.firstName ?? null;
   const lastName = clerkUser.lastName ?? null;

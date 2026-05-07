@@ -157,7 +157,7 @@ router.post("/", async (req: any, res) => {
 
     const userRow = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
     if (userRow[0]) {
-      const { passwordHash: _, resetToken: __, resetTokenExpiry: ___, ...safeUser } = userRow[0];
+      const { passwordHash: _, ...safeUser } = userRow[0];
       res.status(201).json({ ...reg, user: safeUser });
     } else {
       res.status(201).json(reg);
@@ -276,7 +276,7 @@ router.post("/:id/verify", auth, hostOnly, async (req: any, res) => {
     });
 
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, updated.userId)).limit(1);
-    const { passwordHash: _, resetToken: __, resetTokenExpiry: ___, ...safeUser } = user;
+    const { passwordHash: _, ...safeUser } = user;
     res.json({ ...updated, user: safeUser });
   } catch (err) {
     req.log.error({ err }, "Verify registration error");
@@ -309,7 +309,7 @@ router.post("/:id/decline", auth, hostOnly, async (req: any, res) => {
     });
 
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, updated.userId)).limit(1);
-    const { passwordHash: _, resetToken: __, resetTokenExpiry: ___, ...safeUser } = user;
+    const { passwordHash: _, ...safeUser } = user;
     res.json({ ...updated, user: safeUser });
   } catch (err) {
     req.log.error({ err }, "Decline registration error");
@@ -332,7 +332,7 @@ router.post("/:id/cancel", auth, hostOnly, async (req: any, res) => {
     }
     const [updated] = await db.update(registrationsTable).set({ status: "cancelled" }).where(eq(registrationsTable.id, id)).returning();
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, updated.userId)).limit(1);
-    const { passwordHash: _, resetToken: __, resetTokenExpiry: ___, ...safeUser } = user;
+    const { passwordHash: _, ...safeUser } = user;
     res.json({ ...updated, user: safeUser });
   } catch (err) {
     req.log.error({ err }, "Cancel registration error");
