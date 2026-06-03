@@ -117,6 +117,28 @@ html { scroll-behavior: smooth; }
   background-clip: text;
 }
 
+/* ── Clerk Sign-In Google Button white ── */
+.cl-socialButtonsIconButton {
+  color: #ffffff !important;
+  background: #ffffff1a !important;
+  border-color: #ffffff33 !important;
+}
+.cl-socialButtonsIconButton[data-provider="google"] {
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  color: #000000 !important;
+}
+.cl-socialButtonsIconButton[data-provider="google"] svg,
+.cl-socialButtonsIconButton[data-provider="google"] img,
+.cl-socialButtonsIconButton[data-provider="google"] path,
+.cl-socialButtonsIconButton[data-provider="google"] circle,
+.cl-socialButtonsIconButton[data-provider="google"] g {
+  color: #000000 !important;
+  fill: #000000 !important;
+  stroke: #000000 !important;
+  filter: none !important;
+}
+
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,107,53,0.25); border-radius: 99px; }
