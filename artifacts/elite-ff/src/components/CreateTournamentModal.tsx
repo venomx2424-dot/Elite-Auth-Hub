@@ -128,6 +128,7 @@ export default function CreateTournamentModal({ open, onClose }: Props) {
         name: form.name.trim(),
         type: form.type,
         mode: form.mode,
+        mapName: maps[0] || "Bermuda",
         teamSize: form.teamSize,
         entryFee: form.entryFee ? Number(form.entryFee) : null,
         prizePool: form.prizePool ? Number(form.prizePool) : null,

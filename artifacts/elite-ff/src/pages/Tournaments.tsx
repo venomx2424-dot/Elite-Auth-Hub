@@ -92,6 +92,12 @@ function TournamentCard({ t, onClick, compact, registered, onRegister, isHost }:
                   <span className="text-xs text-muted-foreground">{t.teamSize}v{t.teamSize}</span>
                 </>
               )}
+              {t.mapName && (
+                <>
+                  <span className="text-xs" style={{ color: "var(--th-dimmer)" }}>·</span>
+                  <span className="text-xs text-muted-foreground">{t.mapName}</span>
+                </>
+              )}
             </div>
           </div>
           <StatusBadge status={t.status} />
@@ -103,7 +109,7 @@ function TournamentCard({ t, onClick, compact, registered, onRegister, isHost }:
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
             </div>
             <span className="text-xs font-semibold text-foreground">
-              {t.scheduledAt ? new Date(t.scheduledAt).toLocaleString("en-IN", { day: "numeric", month: "short", year: undefined, hour: "2-digit", minute: "2-digit", hour12: true }) : "TBD"}
+              {t.scheduledAt ? new Date(t.scheduledAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: true }) : "TBD"}
             </span>
           </div>
           <div className="flex items-center gap-1.5">

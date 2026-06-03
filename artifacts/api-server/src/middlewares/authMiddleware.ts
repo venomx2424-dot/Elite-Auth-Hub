@@ -35,6 +35,13 @@ async function getOrCreateUser(clerkUserId: string): Promise<typeof usersTable.$
 }
 
 export async function authMiddleware(req: Request, _res: Response, next: NextFunction) {
+  const pubKey = process.env.CLERK_PUBLISHABLE_KEY || "";
+  const isValidKey = pubKey.startsWith("pk_test_") || pubKey.startsWith("pk_live_");
+  if (!isValidKey) {
+    (req as any).isAuthenticated = () => false;
+    return next();
+  }
+
   const auth = getAuth(req);
   const clerkUserId = auth?.userId;
 

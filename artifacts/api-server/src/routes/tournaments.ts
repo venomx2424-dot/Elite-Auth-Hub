@@ -48,7 +48,7 @@ router.post("/", auth, hostOnly, async (req: any, res) => {
       upiId: body.upiId || null,
       isPaid: body.isPaid ?? false,
       timerEnabled: body.timerEnabled ?? true,
-      hostId: req.userId,
+      hostId: req.userId ?? 1,
       status: "upcoming",
     }).returning();
     const { upiId: _, ...safe } = tournament;

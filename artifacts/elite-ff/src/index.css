@@ -119,7 +119,6 @@ html { scroll-behavior: smooth; }
 
 /* ── Clerk Sign-In Google Button white ── */
 .cl-socialButtonsIconButton {
-  color: #ffffff !important;
   background: #ffffff1a !important;
   border-color: #ffffff33 !important;
 }

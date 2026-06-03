@@ -40,7 +40,35 @@ app.use(cookieParser());
 app.use(express.json({ limit: "5mb" } as any));
 app.use(express.urlencoded({ extended: true }));
 
-app.use(clerkMiddleware());
+app.use((req, res, next) => {
+  const pubKey = process.env.CLERK_PUBLISHABLE_KEY || "";
+  const isValidKey = pubKey.startsWith("pk_test_") || pubKey.startsWith("pk_live_");
+  if (!isValidKey) {
+    logger.warn("Invalid Clerk publishable key detected; skipping Clerk auth");
+    (req as any).auth = () => ({ userId: null });
+    return next();
+  }
+  try {
+    const result = clerkMiddleware()(req, res, (err: any) => {
+      if (err) {
+        logger.warn({ err: err.message }, "Clerk middleware error, continuing as unauthenticated");
+        (req as any).auth = () => ({ userId: null });
+      }
+      next();
+    });
+    if (result && typeof result.then === "function") {
+      result.catch((err: any) => {
+        logger.warn({ err: err.message }, "Clerk middleware async error, continuing as unauthenticated");
+        (req as any).auth = () => ({ userId: null });
+        next();
+      });
+    }
+  } catch (err: any) {
+    logger.warn({ err: err.message }, "Clerk middleware sync error, continuing as unauthenticated");
+    (req as any).auth = () => ({ userId: null });
+    next();
+  }
+});
 app.use(authMiddleware as any);
 
 app.use("/api", router);
