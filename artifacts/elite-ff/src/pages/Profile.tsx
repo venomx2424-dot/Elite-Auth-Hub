@@ -38,9 +38,13 @@ interface MyReg {
   tournamentId: number;
   squadName: string;
   playerNames: string;
+  paymentScreenshotUrl: string | null;
+  upiId: string | null;
+  utrNumber: string;
   status: string;
   slotNumber: number | null;
   declineReason: string | null;
+  approvedAt: string | null;
   createdAt: string;
   tournament: {
     id: number;
@@ -253,6 +257,11 @@ export default function Profile() {
                       <RIcon size={9} />
                       {rStatus.label}{reg.status === "verified" && reg.slotNumber ? ` · Slot #${reg.slotNumber}` : ""}
                     </span>
+                    {reg.status === "verified" && reg.approvedAt && (
+                      <span className="text-[10px]" style={{ color: "var(--th-dimmer)" }}>
+                        Approved {new Date(reg.approvedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                      </span>
+                    )}
 
                     {hasResults && matchCount > 0 && (
                       <div className="flex items-center gap-1 text-xs" style={{ color: "var(--th-muted)" }}>

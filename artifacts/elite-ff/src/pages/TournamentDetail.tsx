@@ -84,7 +84,7 @@ function Countdown({ scheduledAt, onExpire, variant = "normal" }: {
   );
 }
 
-function UPIQRCode({ upiId, amount, tournamentName }: { upiId: string; amount: number; tournamentName: string }) {
+function UPIQRCode({ upiId, amount, tournamentName, prizePool }: { upiId: string; amount: number; tournamentName: string; prizePool?: number | null }) {
   const upiLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=EliteFF&am=${amount}&tn=${encodeURIComponent(`Entry: ${tournamentName}`)}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiLink)}&color=ff6b35&bgcolor=0a0e27`;
 
@@ -104,6 +104,11 @@ function UPIQRCode({ upiId, amount, tournamentName }: { upiId: string; amount: n
       <p className="text-xs text-center" style={{ color: "var(--th-muted)" }}>
         Scan with PhonePe, GPay, Paytm, or any UPI app
       </p>
+      {prizePool && prizePool > 0 && (
+        <p className="text-xs text-center font-bold" style={{ color: "#fbbf24" }}>
+          Prize Pool: ₹{prizePool.toLocaleString("en-IN")}
+        </p>
+      )}
       <button
         onClick={() => copy(upiId)}
         className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-smooth active:scale-95"
@@ -148,13 +153,14 @@ export default function TournamentDetail() {
 
   // Registration form state
   const [teamName, setTeamName] = useState("");
-  const [mobile, setMobile] = useState("");
+  const [ignNames, setIgnNames] = useState<string[]>([""]);
   const [utr, setUtr] = useState("");
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [screenshotPreview, setScreenshotPreview] = useState("");
   const [regError, setRegError] = useState("");
   const [regSuccess, setRegSuccess] = useState(false);
   const [playerRegStatus, setPlayerRegStatus] = useState<{ status: string; slotNumber: number | null } | null>(null);
+  const [previewImg, setPreviewImg] = useState<string | null>(null);
 
   const { data: tournament, isLoading } = useGetTournament(id, { query: { queryKey: ["getTournament", id, refreshKey] } as any });
   const { data: registrations = [] } = useGetRegistrations(
@@ -191,7 +197,21 @@ export default function TournamentDetail() {
       },
     },
   });
-  const declineReg = useDeclineRegistration({ mutation: { onSuccess: () => { qc.invalidateQueries({ queryKey: ["getRegistrations", id] }); setDeclineOpen(null); setDeclineReason(""); } } });
+  const declineReg = useDeclineRegistration({
+    mutation: {
+      onSuccess: (data: any) => {
+        qc.invalidateQueries({ queryKey: ["getRegistrations", id] });
+        setDeclineOpen(null);
+        setDeclineReason("");
+        addAlert({
+          type: "declined",
+          title: "Registration Declined",
+          message: `${data.squadName || "Player"} was declined${data.declineReason ? ": " + data.declineReason : ""}`,
+          tournamentId: data.tournamentId,
+        });
+      },
+    },
+  });
   const deleteTournament = useDeleteTournament({ mutation: { onSuccess: () => navigate("/tournaments") } });
   const updateTournament = useUpdateTournament({ mutation: { onSuccess: () => { qc.invalidateQueries({ queryKey: ["getTournament", id] }); setDelayOpen(false); setDeleteOpen(false); } } });
   const cancelTournament = useCancelTournament({ mutation: { onSuccess: () => { qc.invalidateQueries({ queryKey: ["getTournament", id] }); } } });
@@ -248,9 +268,27 @@ export default function TournamentDetail() {
     reader.readAsDataURL(file);
   }
 
+  const teamSize = (tournament?.teamSize || "squad") as "solo" | "duo" | "squad";
+  const requiredIgnCount = teamSize === "solo" ? 1 : teamSize === "duo" ? 2 : 4;
+
+  function updateIgnCount() {
+    setIgnNames(prev => {
+      if (prev.length === requiredIgnCount) return prev;
+      const next = [...prev];
+      while (next.length < requiredIgnCount) next.push("");
+      while (next.length > requiredIgnCount) next.pop();
+      return next;
+    });
+  }
+
+  useEffect(() => {
+    if (tournament) updateIgnCount();
+  }, [tournament?.teamSize]);
+
   function submitRegistration() {
     if (!teamName.trim()) { setRegError("Team name is required"); return; }
-    if (!mobile.trim()) { setRegError("Enter your mobile number"); return; }
+    const emptyIgn = ignNames.findIndex(n => !n.trim());
+    if (emptyIgn >= 0) { setRegError(`Player ${emptyIgn + 1} IGN is required`); return; }
     if (tournament?.isPaid && !utr.trim()) { setRegError("Enter UTR or transaction ID"); return; }
     if (tournament?.isPaid && !screenshotFile) { setRegError("Payment screenshot is required"); return; }
 
@@ -268,15 +306,45 @@ export default function TournamentDetail() {
 
     setRegError("");
 
+    const playerNames = `${teamName.trim()} | ${ignNames.join(", ")}`;
+
     createReg.mutate({
       data: {
         tournamentId: id,
         squadName: teamName.trim(),
-        playerNames: `${teamName.trim()} | ${mobile.trim()}`,
+        playerNames,
         utrNumber: utr.trim() || "-",
         paymentScreenshotUrl: screenshotPreview || null,
+        upiId: tournament?.upiId || null,
         guestUsername: user?.username || null,
       } as any,
+    }, {
+      onSuccess: (data: any) => {
+        const saved = JSON.parse(localStorage.getItem(`eliteff_my_regs_${user?.username}`) || "[]");
+        saved.unshift({
+          tournamentId: id,
+          squadName: teamName.trim(),
+          status: "pending",
+          slotNumber: null,
+          ignNames: [...ignNames],
+        });
+        localStorage.setItem(`eliteff_my_regs_${user?.username}`, JSON.stringify(saved));
+        setRegSuccess(true);
+        setRegOpen(false);
+        setTeamName("");
+        setIgnNames(new Array(requiredIgnCount).fill(""));
+        setUtr("");
+        setScreenshotFile(null);
+        setScreenshotPreview("");
+        addAlert({ type: "registrationSubmitted", title: "Registration Submitted", message: `Your team "${teamName.trim()}" is awaiting approval.` });
+        qc.invalidateQueries({ queryKey: ["getRegistrations", id] });
+        if (tournament) {
+          const remaining = (tournament.maxSlots ?? 0) - (tournament.filledSlots ?? 0) - 1;
+          if (remaining <= 0) {
+            addAlert({ type: "registrationSubmitted", title: "Tournament Full!", message: "Registration submitted but slots are now full." });
+          }
+        }
+      },
     });
   }
 
@@ -720,14 +788,17 @@ export default function TournamentDetail() {
                   <div className="flex flex-col gap-2">
                     {pendingRegs.map((reg: any) => (
                       <div key={reg.id} className="rounded-xl p-3" style={{ background: "var(--th-row)" }}>
-                        <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <div className="text-sm font-bold text-foreground">{reg.playerName}</div>
-                            <div className="text-xs text-muted-foreground">{reg.mobile}</div>
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-bold text-foreground">{reg.squadName}</div>
+                            {reg.playerNames && <div className="text-xs text-muted-foreground truncate">{reg.playerNames}</div>}
                             {reg.utrNumber && <div className="text-xs mt-0.5" style={{ color: "var(--th-muted)" }}>UTR: {reg.utrNumber}</div>}
+                            {reg.user?.mobile && <div className="text-xs mt-0.5" style={{ color: "var(--th-dim)" }}>Phone: {reg.user.mobile}</div>}
                           </div>
-                          {reg.paymentScreenshot && (
-                            <img src={reg.paymentScreenshot} alt="Payment" className="w-12 h-12 rounded-lg object-cover" />
+                          {reg.paymentScreenshotUrl && (
+                            <button onClick={() => setPreviewImg(reg.paymentScreenshotUrl)} className="flex-shrink-0">
+                              <img src={reg.paymentScreenshotUrl} alt="Payment" className="w-14 h-14 rounded-lg object-cover border border-white/10" />
+                            </button>
                           )}
                         </div>
                         <div className="flex gap-2">
@@ -1130,7 +1201,7 @@ export default function TournamentDetail() {
             </div>
 
             {tournament.isPaid && tournament.upiId && tournament.entryFee && (
-              <UPIQRCode upiId={tournament.upiId} amount={tournament.entryFee} tournamentName={tournament.name} />
+              <UPIQRCode upiId={tournament.upiId} amount={tournament.entryFee} tournamentName={tournament.name} prizePool={tournament.prizePool} />
             )}
 
             <div className="flex flex-col gap-3">
@@ -1140,12 +1211,20 @@ export default function TournamentDetail() {
                   className="w-full h-11 rounded-xl px-4 text-sm"
                   style={{ background: "var(--th-card2)", border: "1px solid var(--th-border2)", color: "var(--th-text)" }} />
               </div>
-              <div>
-                <label className="text-xs font-bold text-muted-foreground mb-1 block">Mobile Number *</label>
-                <input value={mobile} onChange={e => setMobile(e.target.value)} placeholder="Enter your mobile number"
-                  type="tel" className="w-full h-11 rounded-xl px-4 text-sm"
-                  style={{ background: "var(--th-card2)", border: "1px solid var(--th-border2)", color: "var(--th-text)" }} />
-              </div>
+              {ignNames.map((ign, i) => (
+                <div key={i}>
+                  <label className="text-xs font-bold text-muted-foreground mb-1 block">
+                    {teamSize === "solo" ? "IGN (In-Game Name) *" : `Player ${i + 1} IGN *`}
+                  </label>
+                  <input value={ign} onChange={e => {
+                    const next = [...ignNames];
+                    next[i] = e.target.value;
+                    setIgnNames(next);
+                  }} placeholder="Enter in-game name"
+                    className="w-full h-11 rounded-xl px-4 text-sm"
+                    style={{ background: "var(--th-card2)", border: "1px solid var(--th-border2)", color: "var(--th-text)" }} />
+                </div>
+              ))}
               {tournament.isPaid && (
                 <>
                   <div>
@@ -1415,6 +1494,18 @@ export default function TournamentDetail() {
                 Delete Permanently
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Screenshot Preview Modal */}
+      {previewImg && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.9)", backdropFilter: "blur(8px)" }} onClick={() => setPreviewImg(null)}>
+          <div className="relative flex flex-col items-center gap-3">
+            <img src={previewImg} alt="Payment screenshot" className="max-w-full max-h-[70vh] rounded-2xl border border-white/10" />
+            <button onClick={() => setPreviewImg(null)} className="px-4 py-2 rounded-xl font-bold text-xs" style={{ background: "rgba(255,255,255,0.1)", color: "#fff" }}>
+              Close
+            </button>
           </div>
         </div>
       )}

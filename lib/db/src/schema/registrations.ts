@@ -11,10 +11,12 @@ export const registrationsTable = pgTable("registrations", {
   squadName: text("squad_name").notNull(),
   playerNames: text("player_names").notNull(),
   paymentScreenshotUrl: text("payment_screenshot_url"),
+  upiId: text("upi_id"),
   utrNumber: text("utr_number").notNull(),
   status: text("status").notNull().default("pending"),
   slotNumber: integer("slot_number"),
   declineReason: text("decline_reason"),
+  approvedAt: timestamp("approved_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

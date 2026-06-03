@@ -163,12 +163,16 @@ export interface Registration {
   playerNames: string;
   /** @nullable */
   paymentScreenshotUrl?: string | null;
+  /** @nullable */
+  upiId?: string | null;
   utrNumber: string;
   status: string;
   /** @nullable */
   slotNumber?: number | null;
   /** @nullable */
   declineReason?: string | null;
+  /** @nullable */
+  approvedAt?: string | null;
   createdAt: string;
   user: User;
 }
@@ -179,6 +183,8 @@ export interface CreateRegistrationBody {
   playerNames: string;
   /** @nullable */
   paymentScreenshotUrl?: string | null;
+  /** @nullable */
+  upiId?: string | null;
   utrNumber: string;
 }
 

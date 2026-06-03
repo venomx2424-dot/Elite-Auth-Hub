@@ -22,6 +22,7 @@ router.get("/check", async (req, res) => {
       slotNumber: registrationsTable.slotNumber,
       squadName: registrationsTable.squadName,
       declineReason: registrationsTable.declineReason,
+      approvedAt: registrationsTable.approvedAt,
       tournamentId: registrationsTable.tournamentId,
     }).from(registrationsTable)
       .where(and(
@@ -55,10 +56,12 @@ router.get("/", auth, async (req: any, res) => {
           squadName: registrationsTable.squadName,
           playerNames: registrationsTable.playerNames,
           paymentScreenshotUrl: registrationsTable.paymentScreenshotUrl,
+          upiId: registrationsTable.upiId,
           utrNumber: registrationsTable.utrNumber,
           status: registrationsTable.status,
           slotNumber: registrationsTable.slotNumber,
           declineReason: registrationsTable.declineReason,
+          approvedAt: registrationsTable.approvedAt,
           createdAt: registrationsTable.createdAt,
           user: {
             id: usersTable.id,
@@ -80,10 +83,12 @@ router.get("/", auth, async (req: any, res) => {
           squadName: registrationsTable.squadName,
           playerNames: registrationsTable.playerNames,
           paymentScreenshotUrl: registrationsTable.paymentScreenshotUrl,
+          upiId: registrationsTable.upiId,
           utrNumber: registrationsTable.utrNumber,
           status: registrationsTable.status,
           slotNumber: registrationsTable.slotNumber,
           declineReason: registrationsTable.declineReason,
+          approvedAt: registrationsTable.approvedAt,
           createdAt: registrationsTable.createdAt,
           user: {
             id: usersTable.id,
@@ -115,7 +120,7 @@ router.get("/", auth, async (req: any, res) => {
 
 router.post("/", async (req: any, res) => {
   try {
-    const { tournamentId, squadName, playerNames, paymentScreenshotUrl, utrNumber, guestUsername } = req.body;
+    const { tournamentId, squadName, playerNames, paymentScreenshotUrl, upiId, utrNumber, guestUsername } = req.body;
     if (!tournamentId || !squadName || !playerNames || !utrNumber) {
       res.status(400).json({ message: "Tournament ID, squad name, player names, and UTR number are required" });
       return;
@@ -144,6 +149,7 @@ router.post("/", async (req: any, res) => {
       squadName,
       playerNames,
       paymentScreenshotUrl: paymentScreenshotUrl || null,
+      upiId: upiId || null,
       utrNumber,
       status: "pending",
     }).returning();
@@ -175,9 +181,13 @@ router.get("/mine", auth, async (req: any, res) => {
       tournamentId: registrationsTable.tournamentId,
       squadName: registrationsTable.squadName,
       playerNames: registrationsTable.playerNames,
+      paymentScreenshotUrl: registrationsTable.paymentScreenshotUrl,
+      upiId: registrationsTable.upiId,
+      utrNumber: registrationsTable.utrNumber,
       status: registrationsTable.status,
       slotNumber: registrationsTable.slotNumber,
       declineReason: registrationsTable.declineReason,
+      approvedAt: registrationsTable.approvedAt,
       createdAt: registrationsTable.createdAt,
       tournament: {
         id: tournamentsTable.id,
@@ -211,10 +221,12 @@ router.get("/:id", auth, async (req: any, res) => {
       squadName: registrationsTable.squadName,
       playerNames: registrationsTable.playerNames,
       paymentScreenshotUrl: registrationsTable.paymentScreenshotUrl,
+      upiId: registrationsTable.upiId,
       utrNumber: registrationsTable.utrNumber,
       status: registrationsTable.status,
       slotNumber: registrationsTable.slotNumber,
       declineReason: registrationsTable.declineReason,
+      approvedAt: registrationsTable.approvedAt,
       createdAt: registrationsTable.createdAt,
       user: {
         id: usersTable.id,
@@ -259,6 +271,7 @@ router.post("/:id/verify", auth, hostOnly, async (req: any, res) => {
     const [updated] = await db.update(registrationsTable).set({
       status: "verified",
       slotNumber,
+      approvedAt: new Date(),
     }).where(eq(registrationsTable.id, id)).returning();
 
     await db.update(tournamentsTable).set({

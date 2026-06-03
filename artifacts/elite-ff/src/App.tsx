@@ -93,6 +93,10 @@ function App() {
           colorInputText: "#f5f5f5",
           borderRadius: "0.875rem",
         },
+        elements: {
+          socialButtonsBlockButton__github: { display: "none" },
+          socialButtonsBlockButtonText: { display: "none" },
+        },
       }}
     >
       <QueryClientProvider client={queryClient}>

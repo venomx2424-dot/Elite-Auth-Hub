@@ -126,6 +126,12 @@ html { scroll-behavior: smooth; }
   background: #ffffff !important;
   border-color: #ffffff !important;
   color: #000000 !important;
+  padding: 0 !important;
+  justify-content: center !important;
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 50% !important;
+  margin: 0 auto !important;
 }
 .cl-socialButtonsIconButton[data-provider="google"] svg,
 .cl-socialButtonsIconButton[data-provider="google"] img,
@@ -136,6 +142,12 @@ html { scroll-behavior: smooth; }
   fill: #000000 !important;
   stroke: #000000 !important;
   filter: none !important;
+}
+.cl-socialButtonsBlockButtonText {
+  display: none !important;
+}
+.cl-socialButtonsBlockButton__github {
+  display: none !important;
 }
 
 ::-webkit-scrollbar { width: 4px; }

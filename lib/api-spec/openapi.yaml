@@ -913,6 +913,8 @@ components:
           type: string
         paymentScreenshotUrl:
           type: ["string", "null"]
+        upiId:
+          type: ["string", "null"]
         utrNumber:
           type: string
         status:
@@ -920,6 +922,8 @@ components:
         slotNumber:
           type: ["integer", "null"]
         declineReason:
+          type: ["string", "null"]
+        approvedAt:
           type: ["string", "null"]
         createdAt:
           type: string
@@ -946,6 +950,8 @@ components:
         playerNames:
           type: string
         paymentScreenshotUrl:
+          type: ["string", "null"]
+        upiId:
           type: ["string", "null"]
         utrNumber:
           type: string
