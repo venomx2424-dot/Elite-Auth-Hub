@@ -159,7 +159,7 @@ export default function TournamentDetail() {
   const [screenshotPreview, setScreenshotPreview] = useState("");
   const [regError, setRegError] = useState("");
   const [regSuccess, setRegSuccess] = useState(false);
-  const [playerRegStatus, setPlayerRegStatus] = useState<{ status: string; slotNumber: number | null } | null>(null);
+  const [playerRegStatus, setPlayerRegStatus] = useState<{ status: string; slotNumber: number | null; squadName: string } | null>(null);
   const [previewImg, setPreviewImg] = useState<string | null>(null);
 
   const { data: tournament, isLoading } = useGetTournament(id, { query: { queryKey: ["getTournament", id, refreshKey] } as any });
@@ -448,12 +448,12 @@ export default function TournamentDetail() {
     const myRegs = JSON.parse(localStorage.getItem(`eliteff_my_regs_${user.username}`) || "[]");
     const myLocalReg = myRegs.find((r: any) => r.tournamentId === id);
     if (!myLocalReg) return;
-    setPlayerRegStatus({ status: myLocalReg.status, slotNumber: myLocalReg.slotNumber });
+    setPlayerRegStatus({ status: myLocalReg.status, slotNumber: myLocalReg.slotNumber, squadName: myLocalReg.squadName || "" });
     fetch(`/api/registrations/check?squadName=${encodeURIComponent(myLocalReg.squadName)}&tournamentId=${id}`)
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data) {
-          setPlayerRegStatus({ status: data.status, slotNumber: data.slotNumber });
+          setPlayerRegStatus({ status: data.status, slotNumber: data.slotNumber, squadName: data.squadName || myLocalReg.squadName || "" });
           myLocalReg.status = data.status;
           myLocalReg.slotNumber = data.slotNumber;
           const updated = myRegs.map((r: any) => r.tournamentId === id ? myLocalReg : r);
@@ -727,10 +727,67 @@ export default function TournamentDetail() {
             </div>
           )}
 
+          {/* Player's own registration details (read-only) */}
+          {!isHost && playerRegStatus && (
+            <div className="rounded-2xl p-4 flex flex-col gap-3" style={{ background: playerRegStatus.status === "verified" ? "rgba(34,197,94,0.06)" : "rgba(255,107,53,0.06)", border: `1px solid ${playerRegStatus.status === "verified" ? "rgba(34,197,94,0.2)" : "rgba(255,107,53,0.2)"}` } }>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {playerRegStatus.status === "verified" ? <CheckCircle size={16} style={{ color: "#22c55e" }} /> : <Clock size={16} style={{ color: "#ff6b35" }} />}
+                  <span className="font-display font-bold text-sm text-foreground">
+                    {playerRegStatus.status === "verified" ? "Registration Verified" : "Registration Pending"}
+                  </span>
+                </div>
+                {playerRegStatus.status === "verified" && playerRegStatus.slotNumber && (
+                  <span className="text-xs font-black px-2.5 py-1 rounded-lg" style={{ background: "rgba(34,197,94,0.15)", color: "#22c55e" }}>
+                    Slot #{playerRegStatus.slotNumber}
+                  </span>
+                )}
+              </div>
+              {/* Find the player's registration details from the registrations list */}
+              {(() => {
+                const myReg = registrations.find((r: any) => r.squadName && playerRegStatus?.squadName && r.squadName.toLowerCase() === playerRegStatus.squadName.toLowerCase());
+                if (!myReg) return null;
+                return (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2 text-xs">
+                      <span style={{ color: "var(--th-dim)" }}>Team:</span>
+                      <span className="font-bold text-foreground">{myReg.squadName}</span>
+                    </div>
+                    {myReg.playerNames && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <span style={{ color: "var(--th-dim)" }}>Players:</span>
+                        <span className="font-semibold text-foreground">{myReg.playerNames}</span>
+                      </div>
+                    )}
+                    {myReg.utrNumber && myReg.utrNumber !== "-" && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <span style={{ color: "var(--th-dim)" }}>UTR:</span>
+                        <span className="font-mono text-foreground">{myReg.utrNumber}</span>
+                      </div>
+                    )}
+                    {myReg.paymentScreenshotUrl && (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs" style={{ color: "var(--th-dim)" }}>Payment Screenshot:</span>
+                        <button onClick={() => setPreviewImg(myReg.paymentScreenshotUrl || null)} className="self-start">
+                          <img src={myReg.paymentScreenshotUrl} alt="Payment" className="w-20 h-20 rounded-lg object-cover border" style={{ borderColor: "var(--th-border)" }} />
+                        </button>
+                      </div>
+                    )}
+                    {myReg.approvedAt && (
+                      <div className="text-xs" style={{ color: "var(--th-dimmer)" }}>
+                        Approved on {new Date(myReg.approvedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
           {/* Registration button */}
           {!isHost && tournament.status === "upcoming" && (() => {
             const myT: number[] = JSON.parse(localStorage.getItem(`eliteff_my_tournaments_${user?.username}`) || "[]");
-            const alreadyRegistered = myT.includes(id);
+            const alreadyRegistered = myT.includes(id) || !!playerRegStatus;
             if (regSuccess) return (
               <div className="rounded-2xl p-4 text-center flex flex-col items-center gap-2" style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)" }}>
                 <CheckCircle size={28} style={{ color: "#22c55e" }} />
@@ -745,13 +802,6 @@ export default function TournamentDetail() {
                   <div className="font-display font-bold text-foreground text-sm">Already Registered</div>
                   <p className="text-xs" style={{ color: "var(--th-muted)" }}>Your registration is pending host verification</p>
                 </div>
-                <button
-                  onClick={() => { if (!user) { navigate("/settings"); return; } setRegOpen(true); }}
-                  className="w-full py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-smooth active:scale-95"
-                  style={{ background: "var(--th-card2)", color: "var(--th-muted)", border: "1px solid var(--th-border2)" }}
-                >
-                  Register Again
-                </button>
               </div>
             );
             if (isFull) return (
@@ -792,13 +842,46 @@ export default function TournamentDetail() {
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-bold text-foreground">{reg.squadName}</div>
                             {reg.playerNames && <div className="text-xs text-muted-foreground truncate">{reg.playerNames}</div>}
-                            {reg.utrNumber && <div className="text-xs mt-0.5" style={{ color: "var(--th-muted)" }}>UTR: {reg.utrNumber}</div>}
-                            {reg.user?.mobile && <div className="text-xs mt-0.5" style={{ color: "var(--th-dim)" }}>Phone: {reg.user.mobile}</div>}
                           </div>
                           {reg.paymentScreenshotUrl && (
                             <button onClick={() => setPreviewImg(reg.paymentScreenshotUrl)} className="flex-shrink-0">
                               <img src={reg.paymentScreenshotUrl} alt="Payment" className="w-14 h-14 rounded-lg object-cover border border-white/10" />
                             </button>
+                          )}
+                        </div>
+                        {/* Full registration details for host */}
+                        <div className="rounded-lg p-2.5 mb-2 text-xs flex flex-col gap-1.5" style={{ background: "var(--th-card2)", border: "1px solid var(--th-border2)" }}>
+                          {reg.playerNames && (
+                            <div className="flex items-start gap-2">
+                              <span className="flex-shrink-0" style={{ color: "var(--th-dim)", minWidth: 70 }}>Players:</span>
+                              <span className="font-semibold text-foreground">{reg.playerNames}</span>
+                            </div>
+                          )}
+                          {reg.utrNumber && reg.utrNumber !== "-" && (
+                            <div className="flex items-center gap-2">
+                              <span className="flex-shrink-0" style={{ color: "var(--th-dim)", minWidth: 70 }}>UTR:</span>
+                              <span className="font-mono text-foreground">{reg.utrNumber}</span>
+                            </div>
+                          )}
+                          {reg.user?.mobile && (
+                            <div className="flex items-center gap-2">
+                              <span className="flex-shrink-0" style={{ color: "var(--th-dim)", minWidth: 70 }}>Phone:</span>
+                              <span className="text-foreground">{reg.user.mobile}</span>
+                            </div>
+                          )}
+                          {reg.upiId && (
+                            <div className="flex items-center gap-2">
+                              <span className="flex-shrink-0" style={{ color: "var(--th-dim)", minWidth: 70 }}>UPI:</span>
+                              <span className="text-foreground">{reg.upiId}</span>
+                            </div>
+                          )}
+                          {reg.paymentScreenshotUrl && (
+                            <div className="flex items-start gap-2">
+                              <span className="flex-shrink-0" style={{ color: "var(--th-dim)", minWidth: 70 }}>Screenshot:</span>
+                              <button onClick={() => setPreviewImg(reg.paymentScreenshotUrl)} className="self-start">
+                                <img src={reg.paymentScreenshotUrl} alt="Payment" className="w-16 h-16 rounded-lg object-cover border" style={{ borderColor: "var(--th-border)" }} />
+                              </button>
+                            </div>
                           )}
                         </div>
                         <div className="flex gap-2">
@@ -895,7 +978,7 @@ export default function TournamentDetail() {
                 >
                   <Pencil size={12} /> Edit
                 </button>
-                {(tournament.status === "live" || tournament.status === "upcoming" || tournament.status === "delayed") && (
+                {tournament.status !== "completed" && tournament.status !== "cancelled" && (
                   <button
                     onClick={() => {
                       if (confirm("Mark this tournament as Completed? This will close all registrations.")) {

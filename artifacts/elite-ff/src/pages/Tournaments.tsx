@@ -364,7 +364,7 @@ export default function Tournaments() {
   const tabFiltered = (() => {
     if (tab === "all") return tournaments;
     if (tab === "my") {
-      return (tournaments as any[]).filter((t: any) => myTournamentIds.has(t.id));
+      return (tournaments as any[]).filter((t: any) => myTournamentIds.has(t.id) && t.status !== "cancelled");
     }
     if (tab === "history") {
       return (tournaments as any[]).filter((t: any) => myTournamentIds.has(t.id) && ["completed", "cancelled"].includes(t.status));
@@ -379,6 +379,8 @@ export default function Tournaments() {
     if (statusFilter === "live" && t.status !== "live") return false;
     if (statusFilter === "upcoming" && t.status !== "upcoming") return false;
     if (statusFilter === "completed" && !["completed", "cancelled"].includes(t.status)) return false;
+    // Hide completed tournaments the player didn't register for
+    if (tab === "all" && t.status === "completed" && !myTournamentIds.has(t.id)) return false;
     if (statusFilter === "free" && t.isPaid) return false;
     if (statusFilter === "paid" && !t.isPaid) return false;
     return true;

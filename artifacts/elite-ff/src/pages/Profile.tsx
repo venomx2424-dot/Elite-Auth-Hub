@@ -262,6 +262,36 @@ export default function Profile() {
                         Approved {new Date(reg.approvedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                       </span>
                     )}
+                  </div>
+
+                  {/* Registration details (read-only) */}
+                  <div className="mt-2 rounded-lg p-2.5 text-xs flex flex-col gap-1" style={{ background: "var(--th-card2)", border: "1px solid var(--th-border2)" }}>
+                    {reg.playerNames && (
+                      <div className="flex items-start gap-2">
+                        <span className="flex-shrink-0" style={{ color: "var(--th-dim)", minWidth: 55 }}>Players:</span>
+                        <span className="font-semibold text-foreground">{reg.playerNames}</span>
+                      </div>
+                    )}
+                    {reg.utrNumber && reg.utrNumber !== "-" && (
+                      <div className="flex items-center gap-2">
+                        <span className="flex-shrink-0" style={{ color: "var(--th-dim)", minWidth: 55 }}>UTR:</span>
+                        <span className="font-mono text-foreground">{reg.utrNumber}</span>
+                      </div>
+                    )}
+                    {reg.upiId && (
+                      <div className="flex items-center gap-2">
+                        <span className="flex-shrink-0" style={{ color: "var(--th-dim)", minWidth: 55 }}>UPI:</span>
+                        <span className="text-foreground">{reg.upiId}</span>
+                      </div>
+                    )}
+                    {reg.approvedAt && (
+                      <div className="flex items-center gap-2">
+                        <span className="flex-shrink-0" style={{ color: "var(--th-dim)", minWidth: 55 }}>Approved:</span>
+                        <span style={{ color: "var(--th-muted)" }}>
+                          {new Date(reg.approvedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        </span>
+                      </div>
+                    )}
 
                     {hasResults && matchCount > 0 && (
                       <div className="flex items-center gap-1 text-xs" style={{ color: "var(--th-muted)" }}>

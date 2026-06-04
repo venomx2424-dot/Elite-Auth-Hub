@@ -56,8 +56,8 @@ app.use((req, res, next) => {
       }
       next();
     });
-    if (result && typeof result.then === "function") {
-      result.catch((err: any) => {
+    if (result && typeof (result as any).then === "function") {
+      (result as any).catch((err: any) => {
         logger.warn({ err: err.message }, "Clerk middleware async error, continuing as unauthenticated");
         (req as any).auth = () => ({ userId: null });
         next();

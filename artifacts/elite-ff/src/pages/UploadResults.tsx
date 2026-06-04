@@ -177,6 +177,9 @@ export default function UploadResults() {
       extra: { tournamentName: store.tournamentName, tournamentId: String(id) },
     });
     setPublished(true);
+    // Auto-mark tournament as completed when results are published
+    fetch(`/api/tournaments/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "completed" }) })
+      .catch(() => {});
     setTimeout(() => navigate(`/tournaments/${id}`), 2000);
   }
 
